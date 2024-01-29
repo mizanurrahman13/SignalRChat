@@ -1,0 +1,345 @@
+﻿@* @page
+<div class="container">
+    <div class="row p-1">
+        <div class="col-1">User</div>
+        <div class="col-5"><input type="text" id="userInput" /></div>
+    </div>
+    <div class="row p-1">
+        <div class="col-1">Message</div>
+        <div class="col-5"><input type="text" class="w-100" id="messageInput" /></div>
+    </div>
+    <div class="row p-1">
+        <div class="col-6 text-end">
+            <input type="button" id="sendButton" value="Send Message" />
+        </div>
+    </div>
+    <div class="row p-1">
+        <div class="col-6">
+            <hr />
+        </div>
+    </div>
+    <div class="row p-1">
+        <div class="col-6">
+            <ul id="messagesList"></ul>
+        </div>
+    </div>
+</div>
+<script src="~/js/signalr/dist/browser/signalr.js"></script>
+<script src="~/js/chat.js"></script> *@
+
+@* @model Tuple<string, int>
+
+<div>
+    <h1>Real-Time Graph</h1>
+    <p id="currentTime"></p>
+    <canvas id="runningGraph" width="400" height="200"></canvas>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.9/signalr.min.js"></script>
+
+<script>
+    var connection = new signalR.HubConnectionBuilder()
+        .withUrl("/timeHub")
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+    var ctx = document.getElementById('runningGraph').getContext('2d');
+    var data = {
+        labels: [],
+        datasets: [{
+            label: 'Running Graph',
+            borderColor: 'rgb(75, 192, 192)',
+            data: [],
+            fill: false
+        }]
+    };
+
+    var config = {
+        type: 'line',
+        data: data,
+        options: {
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom'
+                }
+            }
+        }
+    };
+
+    var myChart = new Chart(ctx, config);
+
+    connection.start().then(function () {
+        console.log("SignalR connected!");
+
+        connection.on("ReceiveTime", function (currentTime) {
+            $("#currentTime").text("Current Time: " + currentTime);
+        });
+
+        setInterval(function () {
+            connection.invoke("GetTime");
+            connection.invoke("GetIndex");
+        }, 1000);
+
+        connection.on("ReceiveIndex", function (index) {
+            data.labels.push(index);
+            data.datasets[0].data.push(Math.sin(index / 10)); // You can replace this with your own data
+            if (data.labels.length > 20) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+            }
+            myChart.update();
+        });
+
+    }).catch(function (err) {
+        return console.error(err.toString());
+    });
+</script> *@
+
+@* @model Tuple<string, int>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Graph</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.9/signalr.min.js"></script>
+
+    <!-- Include Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div>
+        <h1>Real-Time Graph</h1>
+        <p id="currentTime"></p>
+        <canvas id="runningGraph" width="400" height="200"></canvas>
+    </div>
+
+    <script>
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl("/timeHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        var ctx = document.getElementById('runningGraph').getContext('2d');
+        var data = {
+            labels: [],
+            datasets: [{
+                label: 'Linear Flow',
+                borderColor: 'rgb(75, 192, 192)',
+                data: [],
+                fill: false
+            }]
+        };
+
+        var config = {
+            type: 'line',
+            data: data,
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'right'
+                    }
+                }
+            }
+        };
+
+        var myChart = new Chart(ctx, config);
+
+        connection.start().then(function () {
+            console.log("SignalR connected!");
+
+            connection.on("ReceiveTime", function (currentTime) {
+                $("#currentTime").text("Current Time: " + currentTime);
+            });
+
+            var index = 0;
+
+            setInterval(function () {
+                connection.invoke("GetTime");
+                connection.invoke("GetIndex");
+            }, 1000);
+
+            setInterval(function () {
+                // Add linear flow from right to left every 5 seconds
+                var currentTime = new Date().toLocaleTimeString();
+                data.labels.push(index);
+                data.datasets[0].data.push(0); // y-axis value, you can replace it with your own data
+                index += 5;
+
+                if (data.labels.length > 10) {
+                    // Limit the number of data points to 10 for better visibility
+                    data.labels.shift();
+                    data.datasets[0].data.shift();
+                }
+
+                myChart.update();
+            }, 5000);
+
+        }).catch(function (err) {
+            return console.error(err.toString());
+        });
+    </script>
+</body>
+</html> *@
+
+@* @model Tuple<string, int>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hangfire-like Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div>
+        <h1>Hangfire-like Dashboard</h1>
+        <canvas id="dashboardChart" width="800" height="400"></canvas>
+    </div>
+
+    <script>
+        var ctx = document.getElementById('dashboardChart').getContext('2d');
+        var data = {
+            labels: [],
+            datasets: [{
+                label: 'Job Execution',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 2,
+                pointRadius: 0,
+                data: []
+            }]
+        };
+
+        var config = {
+            type: 'line',
+            data: data,
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left'
+                    }
+                }
+            }
+        };
+
+        var myChart = new Chart(ctx, config);
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        setInterval(function () {
+            var currentTime = new Date().toLocaleTimeString();
+            var index = data.labels.length;
+
+            data.labels.push(index);
+            data.datasets[0].data.push(getRandomInt(10, 50)); // Simulating job execution count
+
+            if (data.labels.length > 20) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+            }
+
+            myChart.update();
+        }, 5000); // Update every 5 seconds
+    </script>
+</body>
+</html> *@
+
+@model Tuple<string, int>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hangfire-like Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div>
+        <h1>Hangfire-like Dashboard</h1>
+        <canvas id="lineChart" width="800" height="400"></canvas>
+    </div>
+
+    <script>
+        var ctx = document.getElementById('lineChart').getContext('2d');
+        var data = {
+            labels: [],
+            datasets: [{
+                label: 'Jobs Processed',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 2,
+                pointRadius: 0,
+                data: []
+            }]
+        };
+
+        var config = {
+            type: 'line',
+            data: data,
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left'
+                    }
+                }
+            }
+        };
+
+        var myChart = new Chart(ctx, config);
+
+        var currentIndex = 0;
+
+        setInterval(function () {
+            // Simulate jobs processed
+            var jobsProcessed = Math.floor(Math.random() * 10) + 1;
+
+            // Add new data point with current time
+            data.labels.push(currentIndex);
+            data.datasets[0].data.push(jobsProcessed);
+
+            // Increment index for the next data point
+            currentIndex++;
+
+            // Limit the number of data points displayed
+            if (data.labels.length > 20) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+            }
+
+            // Update the chart
+            myChart.update();
+        }, 5000); // Update every 5 seconds
+    </script>
+</body>
+</html>
+
+
+
+
+
+
